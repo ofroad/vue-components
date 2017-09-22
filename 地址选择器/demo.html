@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>地址选择器</title>
+<style type="text/css">
+
+</style>
+</head>
+<body>
+<div id="body">
+    <address-select 
+    :default-pro="defaultPro"
+    :default-city="defaultCity"
+    :default-area="defaultArea"
+    :index-arr="indexArr1"
+    v-on:change="test"
+    ></address-select>
+
+    <address-select 
+    :default-pro="defaultPro1"
+    :default-city="defaultCity1"
+    :default-area="defaultArea1"
+    :index-arr="indexArr1"
+    v-on:change="test"
+    ></address-select>
+</div>
+
+<script src="address.js"></script>
+<script src="https://unpkg.com/vue@2.4.4/dist/vue.js"></script>
+<script>
+
+Vue.component('address-select', {
+
+    props : {
+        defaultPro : {
+            required : false,
+            type : String
+        },
+        defaultCity : {
+            required : false,
+            type : String
+        },
+        defaultArea : {
+            required : false,
+            type : String
+        },
+        indexArr : {
+            required : false,
+            type : Array
+        },
+    },
+
+    template : `
+        <div>
+            <select ref="pro" v-on:change="changePro"><option v-for="(item, index) in proList" :selected=checkSelected(selectedPro,item)>{{item}}</option></select>
+            <select ref="city" v-on:change="changeCity"><option v-for="(item, index) in cityList" :selected=checkSelected(selectedCity,item)>{{item}}</option></select>
+            <select ref="area" v-on:change="changeArea"><option v-for="(item, index) in areaList" :selected=checkSelected(selectedArea,item)>{{item}}</option></select>
+        </div>
+        `,
+
+    data() {
+        return {
+            addressList : provinceList,
+            proList : [],
+            cityList : [],
+            areaList : [],
+            selectedPro : this.defaultPro,
+            selectedCity : this.defaultCity,
+            selectedArea : this.defaultArea,
+        } 
+    },
+
+    watch : {
+        selectedPro() {
+            this.addressChange();
+            this.emitAdress();
+        },
+        selectedCity() {
+            this.addressChange();
+            this.emitAdress();
+        },
+        selectedArea() {
+            this.emitAdress();
+        },
+    },
+
+    mounted : function() {
+        this.addressChange();
+    },
+
+    methods : {
+
+        emitAdress() {
+            this.$emit('change', {
+                address : {
+                    selectedPro : this.selectedPro,
+                    selectedCity : this.selectedCity,
+                    selectedArea : this.selectedArea,
+                },
+                indexArr : this.indexArr
+            });
+        },
+
+        addressChange() {
+            let vue  = this;
+            this.proList = [];
+            this.addressList.forEach( (item, index, arr) => {
+                vue.proList.push(item.name);
+            });
+
+            // 获取市数据
+            let indexProIndex = this.proList.findIndex(function(item, index, arr) {
+                return item === vue.selectedPro;
+            });
+            if ( indexProIndex === -1 ) {
+                indexProIndex = 0;
+            } 
+            // 判断是不是直辖市
+            this.cityList = [];
+            if ( indexProIndex >=0 && indexProIndex <= 3 ) {
+                this.cityList.push( this.addressList[indexProIndex]['name'] );
+            } else {
+                this.addressList[indexProIndex]['cityList'].forEach( (item, index, arr) => {
+                    vue.cityList.push(item.name);
+                });
+            }
+
+            // 获取区数据
+            let indexCityIndex = this.cityList.findIndex(function(item, index, arr) {
+                return item === vue.selectedCity;
+            });
+            if ( indexCityIndex === -1 ) {
+                indexCityIndex = 0;
+            } 
+            this.areaList = [];
+            // 判断是不是直辖市
+            if ( indexProIndex >=0 && indexProIndex <= 3 ) {
+                this.addressList[indexProIndex]['cityList'].forEach( (item, index, arr) => {
+                    vue.areaList.push(item.name);
+                });
+            } else {
+                this.addressList[indexProIndex]['cityList'][indexCityIndex]['areaList'].forEach( (item, index, arr) => {
+                    vue.areaList.push(item);
+                });
+            }
+
+            this.$nextTick( () => {
+                this.changePro();
+                this.changeCity();
+                this.changeArea();
+            });
+        },
+
+        checkSelected( selectedType ,item ) {
+            return item === selectedType;
+        },
+
+        changePro() {
+            this.selectedPro = this.$refs.pro.options[this.$refs.pro.selectedIndex].text;
+        },
+
+        changeCity() {
+            this.selectedCity = this.$refs.city.options[this.$refs.city.selectedIndex].text;
+        },
+
+        changeArea() {
+            this.selectedArea = this.$refs.area.options[this.$refs.area.selectedIndex].text;
+        }
+    },
+});
+
+// 测试数据
+new Vue({
+    el : '#body',
+    data() {
+        return {
+            defaultPro : '浙江省',
+            defaultCity : '杭州市',
+            defaultArea : '淳安县',
+            indexArr1 : [],
+            defaultPro1 : '北京市',
+            defaultCity1 : '北京市',
+            defaultArea1 : '',
+            indexArr2 : []
+        }
+    },
+    methods : {
+        // 子组件用过$emit()触发父组件的test事件
+        test(numObj) {
+            console.log(numObj);
+        }
+    },
+    mounted() {
+    }
+})
+</script>
+</body>
+</html>
